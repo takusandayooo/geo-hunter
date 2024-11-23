@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Hello Leaflet!</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+      integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+      crossorigin=""
+    ></script>
+  </head>
+  <body>
+    <div id="mapid" style="width: 800px; height: 600px"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io({
+        auth: {
+          serverOffset: 0,
+        },
+      });
+
+      var mymap = L.map("mapid").setView(
+        [35.644762209077854, 139.4085195210928],
+        17
+      );
+
+      var tileLayer = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '© <a href="http://osm.org/copyright">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+          maxZoom: 19,
+        }
+      );
+      tileLayer.addTo(mymap);
+
+      var markers = [];
+
+      socket.on("map", (data) => {
+        console.log(data);
+        let locationData =
+          JSON.parse(localStorage.getItem("locationData")) || [];
+
+        // 同じ名前のデータがあるか確認し、あれば上書き
+        const index = locationData.findIndex(
+          (element) => element.name === data.name
+        );
+        if (index !== -1) {
+          locationData[index] = data;
+        } else {
+          locationData.push(data);
+        }
+
+        localStorage.setItem("locationData", JSON.stringify(locationData));
+
+        // 既存のピンをクリア
+        markers.forEach((marker) => {
+          mymap.removeLayer(marker);
+        });
+        markers = [];
+
+        locationData.forEach((element) => {
+          let marker = L.marker([element.lat, element.lng])
+            .addTo(mymap)
+            .bindPopup(`<b>${element.name}</b><br/>これはポップアップです`)
+            .openPopup();
+          markers.push(marker);
+        });
+      });
+    </script>
+  </body>
+</html>

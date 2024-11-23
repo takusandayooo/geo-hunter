@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>スマホの磁気センサーで方角を取得</title>
+    <style>
+      #compass {
+        width: 200px;
+        height: 200px;
+        background: url("image.png") no-repeat center center;
+        background-size: contain;
+        transform-origin: center center;
+        transition: transform 0.5s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="direction"></div>
+    <div id="compass"></div>
+    <div id="location"></div>
+    <button onclick="play()">Play</button>
+    <button onclick="stop()">Stop</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      let audioCtx;
+      let listener;
+      let panner;
+      let gainNode;
+
+      function getDeviceOrientation() {
+        return new Promise((resolve, reject) => {
+          if (window.DeviceOrientationEvent) {
+            window.addEventListener(
+              "deviceorientation",
+              (event) => {
+                const alpha = (event.alpha + 90) % 360;
+                const directionElem = document.getElementById("direction");
+                const compassElem = document.getElementById("compass");
+                directionElem.textContent = `方角: ${alpha.toFixed(2)}°`;
+                compassElem.style.transform = `rotate(${alpha}deg)`;
+                resolve(alpha);
+              },
+              true
+            );
+          } else {
+            alert(
+              "このブラウザはDeviceOrientationEventをサポートしていません。"
+            );
+          }
+        });
+      }
+
+      function getGeolocation() {
+        return new Promise((resolve, reject) => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const crd = position.coords;
+                const locationElem = document.getElementById("location");
+                locationElem.textContent = `緯度: ${crd.latitude}, 経度: ${crd.longitude}`;
+                socket.emit("map",{
+                  name:localStorage.getItem("userName"),
+                  lat:crd.latitude,
+                  lng:crd.longitude
+                })
+                resolve({ latitude: crd.latitude, longitude: crd.longitude });
+              },
+              (error) => {
+                reject(error);
+              }
+            );
+          } else {
+            alert("このブラウザはGeolocation APIをサポートしていません。");
+          }
+        });
+      }
+
+      const restart = () => {
+        var alpha = 0;
+        var latitude = 0;
+        var longitude = 0;
+        getDeviceOrientation()
+          .then((alpha) => {
+            console.log(`Device orientation: ${alpha}`);
+            alpha = alpha;
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+        getGeolocation()
+          .then((coords) => {
+            console.log(
+              `Geolocation: 緯度 ${coords.latitude}, 経度 ${coords.longitude}`
+            );
+            latitude = coords.latitude;
+            longitude = coords.longitude;
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+        var targetX = 0;
+        var targetY = 0;
+
+        const radians = Math.atan((targetY - latitude) / (targetX - longitude));
+        const degrees = radians * (180 / Math.PI);
+        if (radians - 10 <= alpha && alpha <= radians + 10) {
+          play();
+          updatePosition(panner, -10, 0, 0);
+        } else {
+          play();
+          updatePosition(panner, 10, 0, 0);
+        }
+        setTimeout(() => {
+          restart();
+        }, 5000);
+      };
+      restart();
+
+      //NOTE: 立体音響の実装
+      function setupListener() {
+        const posX = window.innerWidth / 2;
+        const posY = window.innerHeight / 2;
+        const posZ = 300;
+
+        if (listener.positionX) {
+          listener.positionX.value = posX;
+          listener.positionY.value = posY;
+          listener.positionZ.value = posZ;
+        } else {
+          listener.setPosition(posX, posY, posZ);
+        }
+
+        if (listener.forwardX) {
+          listener.forwardX.value = 0;
+          listener.forwardY.value = 0;
+          listener.forwardZ.value = -1;
+          listener.upX.value = 0;
+          listener.upY.value = 1;
+          listener.upZ.value = 0;
+        } else {
+          listener.setOrientation(0, 0, -1, 0, 1, 0);
+        }
+      }
+
+      function createPanner(posX, posY, posZ) {
+        return new PannerNode(audioCtx, {
+          panningModel: "HRTF", // より現実的な3D音響効果
+          distanceModel: "linear", // 距離による音量減衰の計算方法
+          positionX: posX,
+          positionY: posY,
+          positionZ: posZ,
+          orientationX: 0.0,
+          orientationY: 0.0,
+          orientationZ: -1.0,
+          refDistance: 1, // 基準距離
+          maxDistance: 20000, // 最大距離
+          rolloffFactor: 10, // 距離による音量減衰率
+          coneInnerAngle: 40, // 内部コーンの角度
+          coneOuterAngle: 50, // 外部コーンの角度
+          coneOuterGain: 0.4, // 外部コーンでの音量
+        });
+      }
+
+      function setupAudio(audioElement) {
+        const track = new MediaElementAudioSourceNode(audioCtx, {
+          mediaElement: audioElement,
+        });
+
+        panner = createPanner(
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+          300
+        );
+        gainNode = audioCtx.createGain();
+        track.connect(panner).connect(gainNode).connect(audioCtx.destination);
+      }
+
+      function updatePosition(panner, x, y, z) {
+        panner.positionX.value = panner.positionX.value + x;
+        panner.positionY.value = panner.positionY.value + y;
+        panner.positionZ.value = panner.positionZ.value + z;
+      }
+      function setVolume(value) {
+        gainNode.gain.value = value;
+      }
+      function play() {
+        audioCtx = new AudioContext();
+        listener = audioCtx.listener;
+        const audioElement = new Audio(
+          "https://takusandayo.com/geo-hunter/Audio/music.mp3"
+        );
+        setupListener();
+        setupAudio(audioElement);
+        audioElement.play();
+      }
+      function stop() {
+        if (audioCtx && audioCtx.state !== "closed") {
+          audioCtx.close().then(() => {
+            audioCtx = null;
+            panner = null;
+            gainNode = null;
+          });
+        }
+      }
+    </script>
+  </body>
+</html>

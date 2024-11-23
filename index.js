@@ -27,8 +27,18 @@ app.get("/", (req, res) => {
 app.get("/chat", (req, res) => {
   res.sendFile(join(__dirname, "chat.html"));
 });
-
+app.get("/map", (req, res) => {
+  res.sendFile(join(__dirname, "map.html"));
+});
+app.get("/main", (req, res) => {
+  res.sendFile(join(__dirname, "main.html"));
+});
 io.on("connection", async (socket) => {
+  socket.on("map",async (msg) => {
+    console.log("map", msg);
+    io.emit("map", msg);
+  });
+
   socket.on("chat message", async (msg) => {
     await db.exec(`
       CREATE TABLE IF NOT EXISTS messages(
