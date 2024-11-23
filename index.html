@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <input id="userName" /><button>ユーザ名登録</button>
+  </body>
+  <script>
+    const button = document.querySelector("button");
+    button.addEventListener("click", () => {
+      const input = document.getElementById("userName");
+      if (!input.value) {
+        alert("ユーザ名を入力してください");
+        return;
+      }
+      localStorage.setItem("userName", input.value);
+      window.location.href = "/chat";
+    });
+  </script>
+</html>
