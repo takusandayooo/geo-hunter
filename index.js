@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -17,13 +17,20 @@ const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery: {},
 });
-let roomIdGlobal ="room1";
-
+const treasure_location={
+  "latitude":0,
+  "longitude":0,
+}
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.get("/", (req, res) => {
   res.sendFile(join(__dirname, "index.html"));
 });
+
+app.get("/treasure_location", (req, res) => {
+  res.json(treasure_location);
+});
+
 app.get("/chat", (req, res) => {
   res.sendFile(join(__dirname, "chat.html"));
 });

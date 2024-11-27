@@ -19,12 +19,13 @@
     <div id="direction"></div>
     <div id="compass"></div>
     <div id="location"></div>
+    <div id="target"></div>
+    <div id="debag1"></div>
+
     <button onclick="play()">Play</button>
     <button onclick="stop()">Stop</button>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io();
       let audioCtx;
       let listener;
       let panner;
@@ -41,6 +42,7 @@
                 const compassElem = document.getElementById("compass");
                 directionElem.textContent = `方角: ${alpha.toFixed(2)}°`;
                 compassElem.style.transform = `rotate(${alpha}deg)`;
+                localStorage.setItem("alpha", alpha);
                 resolve(alpha);
               },
               true
@@ -61,11 +63,8 @@
                 const crd = position.coords;
                 const locationElem = document.getElementById("location");
                 locationElem.textContent = `緯度: ${crd.latitude}, 経度: ${crd.longitude}`;
-                socket.emit("map",{
-                  name:localStorage.getItem("userName"),
-                  lat:crd.latitude,
-                  lng:crd.longitude
-                })
+                localStorage.setItem("latitude", crd.latitude);
+                localStorage.setItem("longitude", crd.longitude);
                 resolve({ latitude: crd.latitude, longitude: crd.longitude });
               },
               (error) => {
@@ -101,17 +100,35 @@
           .catch((error) => {
             console.error(error);
           });
-        var targetX = 0;
-        var targetY = 0;
+        var targetX = localStorage.getItem("treasure_longitude");
+        var targetY = localStorage.getItem("treasure_latitude");
+        latitude = targetY - localStorage.getItem("latitude");
+        longitude = targetX - localStorage.getItem("longitude");
+        alpha = localStorage.getItem("alpha");
+        document.getElementById(
+          "debag1"
+        ).textContent = `latitude: ${latitude}, longitude: ${longitude}, alpha: ${alpha}`;
 
-        const radians = Math.atan((targetY - latitude) / (targetX - longitude));
-        const degrees = radians * (180 / Math.PI);
-        if (radians - 10 <= alpha && alpha <= radians + 10) {
+        const radians = Math.atan2(latitude, longitude);
+        let degrees = radians * (180 / Math.PI);
+
+        // degreesを0度から360度の範囲に変換
+        if (degrees < 0) {
+          degrees += 360;
+        }
+
+        const target = document.getElementById("target");
+        target.textContent = `radians: ${radians}, degrees: ${degrees}, time: ${new Date().toLocaleTimeString()}`;
+
+        if (degrees - 10 <= alpha && alpha <= degrees + 10) {
           play();
-          updatePosition(panner, -10, 0, 0);
+          updatePosition(panner, 0, 0, 0); // 通常の音声
+        } else if (degrees < alpha) {
+          play();
+          updatePosition(panner, -10, 0, 0); // 左から音声
         } else {
           play();
-          updatePosition(panner, 10, 0, 0);
+          updatePosition(panner, 10, 0, 0); // 右から音声
         }
         setTimeout(() => {
           restart();

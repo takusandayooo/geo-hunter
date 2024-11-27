@@ -4,6 +4,11 @@
     <input id="userName" /><button>ユーザ名登録</button>
   </body>
   <script>
+    fetch("/treasure_location").then(response=>response.json()).then(data=>{
+      const {latitude, longitude} = data;
+      localStorage.setItem("treasure_latitude", latitude);
+      localStorage.setItem("treasure_longitude", longitude);
+    });
     const button = document.querySelector("button");
     localStorage.clear();
     button.addEventListener("click", () => {
