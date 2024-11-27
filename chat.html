@@ -87,6 +87,9 @@
       const currentDate = new Date();
       const time = currentDate.getTime();
       const userName = localStorage.getItem("userName");
+      if (!input.value) {
+        return;
+      }
       const dict = {
         userName: userName,
         time: time,
