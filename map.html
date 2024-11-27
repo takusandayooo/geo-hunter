@@ -68,7 +68,7 @@
         locationData.forEach((element) => {
           let marker = L.marker([element.lat, element.lng])
             .addTo(mymap)
-            .bindPopup(`<b>${element.name}</b><br/>これはポップアップです`)
+            .bindPopup(`<b>${element.name}</b><br/>緯度: ${element.lat},経度: ${element.lng}`)
             .openPopup();
           markers.push(marker);
         });
