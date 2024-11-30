@@ -5,6 +5,9 @@ import { dirname, join } from "node:path";
 import { Server } from "socket.io";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
+import path from "node:path";
+
+
 
 // open the database file
 const db = await open({
@@ -25,6 +28,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.get("/", (req, res) => {
   res.sendFile(join(__dirname, "index.html"));
+});
+
+app.get('/Audio/music.mp3', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Audio', 'music.mp3'));
 });
 
 app.get("/treasure_location", (req, res) => {
