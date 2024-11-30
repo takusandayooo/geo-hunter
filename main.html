@@ -128,6 +128,10 @@
         target.textContent = `radians: ${radians}, degrees: ${degrees}, time: ${new Date().toLocaleTimeString()}`;
 
         if (degrees - 10 <= alpha && alpha <= degrees + 10) {
+          if (degrees-2<=alpha && alpha<=degrees+2){
+            just_play();
+            updatePosition(panner, 0, 0, 0); // 通常の音声
+          }
           play();
           updatePosition(panner, 0, 0, 0); // 通常の音声
         } else if (degrees < alpha) {
@@ -209,6 +213,14 @@
       }
       function setVolume(value) {
         gainNode.gain.value = value;
+      }
+      function just_play(){
+        const audioElement = new Audio(
+          "/Audio/just_music.mp3"
+        );
+        setupListener();
+        setupAudio(audioElement);
+        audioElement.play();
       }
       function play() {
         audioCtx = new AudioContext();

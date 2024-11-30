@@ -33,6 +33,9 @@ app.get("/", (req, res) => {
 app.get('/Audio/music.mp3', (req, res) => {
   res.sendFile(path.join(__dirname, 'Audio', 'music.mp3'));
 });
+app.get("/Audio/just_music.mp3", (req, res) => {
+  res.sendFile(path.join(__dirname, "Audio", "just_music.mp3"));
+});
 
 app.get("/treasure_location", (req, res) => {
   res.json(treasure_location);
