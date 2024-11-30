@@ -33,30 +33,107 @@
       let panner;
       let gainNode;
 
+      // function getDeviceOrientation() {
+      //   return new Promise((resolve, reject) => {
+      //     if (window.DeviceOrientationEvent) {
+      //       window.addEventListener(
+      //         "deviceorientation",
+      //         (event) => {
+      //           const alpha = (event.alpha + 90) % 360;
+      //           const directionElem = document.getElementById("direction");
+      //           const compassElem = document.getElementById("compass");
+      //           directionElem.textContent = `方角: ${alpha.toFixed(2)}°`;
+      //           compassElem.style.transform = `rotate(${alpha}deg)`;
+      //           localStorage.setItem("alpha", alpha);
+      //           resolve(alpha);
+      //         },
+      //         true
+      //       );
+      //     } else {
+      //       alert(
+      //         "このブラウザはDeviceOrientationEventをサポートしていません。"
+      //       );
+      //     }
+      //   });
+      // }
       function getDeviceOrientation() {
         return new Promise((resolve, reject) => {
-          if (window.DeviceOrientationEvent) {
+          const os = detectOSSimply();
+          if (os === "iphone") {
+            // Safariでの許可要求
+            document.querySelector("#permit").addEventListener("click", () => {
+              DeviceOrientationEvent.requestPermission()
+                .then((response) => {
+                  if (response === "granted") {
+                    window.addEventListener(
+                      "deviceorientation",
+                      handleOrientation
+                    );
+                  }
+                })
+                .catch((error) => console.error("Permission error:", error));
+            });
+          } else if (os === "android") {
             window.addEventListener(
-              "deviceorientation",
-              (event) => {
-                const alpha = (event.alpha + 90) % 360;
-                const directionElem = document.getElementById("direction");
-                const compassElem = document.getElementById("compass");
-                directionElem.textContent = `方角: ${alpha.toFixed(2)}°`;
-                compassElem.style.transform = `rotate(${alpha}deg)`;
-                localStorage.setItem("alpha", alpha);
-                resolve(alpha);
-              },
+              "deviceorientationabsolute",
+              handleOrientation,
               true
             );
           } else {
-            alert(
-              "このブラウザはDeviceOrientationEventをサポートしていません。"
-            );
+            alert("PC未対応サンプル");
           }
         });
       }
 
+      function handleOrientation(event) {
+        let degrees;
+        if (detectOSSimply() === "iphone") {
+          degrees = event.webkitCompassHeading; // iPhone専用
+        } else {
+          degrees = compassHeading(event.alpha, event.beta, event.gamma); // Android用
+        }
+
+        const directionElem = document.getElementById("direction");
+        const compassElem = document.getElementById("compass");
+        directionElem.textContent = `方角: ${degrees.toFixed(2)}°`;
+        compassElem.style.transform = `rotate(${degrees}deg)`;
+        localStorage.setItem("alpha", degrees);
+      }
+
+      function compassHeading(alpha, beta, gamma) {
+        const degtorad = Math.PI / 180;
+        const _x = beta * degtorad || 0;
+        const _y = gamma * degtorad || 0;
+        const _z = alpha * degtorad || 0;
+
+        const cX = Math.cos(_x);
+        const cY = Math.cos(_y);
+        const cZ = Math.cos(_z);
+        const sX = Math.sin(_x);
+        const sY = Math.sin(_y);
+        const sZ = Math.sin(_z);
+
+        const Vx = -cZ * sY - sZ * sX * cY;
+        const Vy = -sZ * sY + cZ * sX * cY;
+
+        let heading = Math.atan(Vx / Vy);
+        if (Vy < 0) {
+          heading += Math.PI;
+        } else if (Vx < 0) {
+          heading += 2 * Math.PI;
+        }
+        return heading * (180 / Math.PI);
+      }
+
+      function detectOSSimply() {
+        if (navigator.userAgent.indexOf("iPhone") > 0) {
+          return "iphone";
+        } else if (navigator.userAgent.indexOf("Android") > 0) {
+          return "android";
+        } else {
+          return "pc";
+        }
+      }
       function getGeolocation() {
         return new Promise((resolve, reject) => {
           if (navigator.geolocation) {
@@ -67,11 +144,11 @@
                 locationElem.textContent = `緯度: ${crd.latitude}, 経度: ${crd.longitude}`;
                 localStorage.setItem("latitude", crd.latitude);
                 localStorage.setItem("longitude", crd.longitude);
-                socket.emit("map",{
-                  name:localStorage.getItem("userName"),
-                  lat:crd.latitude,
-                  lng:crd.longitude
-                })
+                socket.emit("map", {
+                  name: localStorage.getItem("userName"),
+                  lat: crd.latitude,
+                  lng: crd.longitude,
+                });
                 resolve({ latitude: crd.latitude, longitude: crd.longitude });
               },
               (error) => {
@@ -116,7 +193,7 @@
           "debag1"
         ).textContent = `latitude: ${latitude}, longitude: ${longitude}, alpha: ${alpha}`;
 
-        const radians = Math.atan2(latitude, longitude);
+        const radians = Math.atan2(latitude, longitude); //NOTE: atanは0<=x<=π/2の範囲でしか返さない
         let degrees = radians * (180 / Math.PI);
 
         // degreesを0度から360度の範囲に変換
@@ -128,7 +205,7 @@
         target.textContent = `radians: ${radians}, degrees: ${degrees}, time: ${new Date().toLocaleTimeString()}`;
 
         if (degrees - 10 <= alpha && alpha <= degrees + 10) {
-          if (degrees-2<=alpha && alpha<=degrees+2){
+          if (degrees - 2 <= alpha && alpha <= degrees + 2) {
             just_play();
             updatePosition(panner, 0, 0, 0); // 通常の音声
           }
@@ -214,10 +291,8 @@
       function setVolume(value) {
         gainNode.gain.value = value;
       }
-      function just_play(){
-        const audioElement = new Audio(
-          "/Audio/just_music.mp3"
-        );
+      function just_play() {
+        const audioElement = new Audio("/Audio/just_music.mp3");
         setupListener();
         setupAudio(audioElement);
         audioElement.play();
@@ -225,9 +300,7 @@
       function play() {
         audioCtx = new AudioContext();
         listener = audioCtx.listener;
-        const audioElement = new Audio(
-          "/Audio/music.mp3"
-        );
+        const audioElement = new Audio("/Audio/music.mp3");
         setupListener();
         setupAudio(audioElement);
         audioElement.play();
