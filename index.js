@@ -50,6 +50,11 @@ app.get("/map", (req, res) => {
 app.get("/main", (req, res) => {
   res.sendFile(join(__dirname, "main.html"));
 });
+
+app.get("/ar", (req, res) => {
+  res.sendFile(join(__dirname, "ar.html"));
+});
+
 io.on("connection", async (socket) => {
   socket.on("map",async (msg) => {
     console.log("map", msg);

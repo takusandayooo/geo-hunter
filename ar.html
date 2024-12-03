@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>GeoHunter</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <style>
+      #debug {
+        position: fixed;
+        z-index: 10000;
+        background-color: #fff;
+        padding: 10px;
+        top: 0;
+        left: 0;
+        display: block;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <div id="debug"></div>
+    <div id="distance" style="position: fixed; top: 10%; left: 50%; transform: translateX(-50%); color: white; display: block;">距離情報を表示</div>
+    <div id="message" style="position: fixed; top: 20%; left: 50%; transform: translateX(-50%); color: white; display: none;">目的地に到着しました！</div>
+
+    <a-scene
+    vr-mode-ui="enabled: false"
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+  >
+    <!-- 3Dモデル（gltfファイル） -->
+    <a-assets>
+      <a-asset-items id="TreasureBox" src="TreasureBox.glb" ></a-asset-items>
+    </a-assets>
+    <a-entity
+      gps-entity-place="latitude: 35.644575964466235; longitude: 139.40803091081023;"
+      gltf-model="#TreasureBox"
+      scale="7 7 7"
+      rotation="0 0 0"
+      position="0 -1 0"
+    ></a-entity>
+    <a-light
+    id="directionLight"
+    type="directional"
+    color="#FFF"
+    intensity="0.1"
+    position="-1 1 2"
+  ></a-light>
+  <a-light
+    id="ambientLight"
+    type="ambient"
+    intensity="0.1"
+    color="#FFF"
+  ></a-light>
+    <a-camera gps-camera="minDistance:10; maxDistance:50" rotation-reader> </a-camera>
+  </a-scene>
+  <script>
+      window.addEventListener('load', function () {
+        const el = document.querySelector('[gps-entity-place]');
+        const distanceMsg = document.getElementById('distance');
+        const message = document.getElementById('message');
+        const directionLight = document.getElementById('directionLight');
+        const ambientLight = document.getElementById('ambientLight');
+        el.addEventListener('gps-entity-place-update-position', (event) => {
+          distanceMsg.textContent = `あと${event.detail.distance}m`;
+          if(event.detail.distance <= 50) {
+            // 30m以下で明るくする、メッセージ表示、距離非表示
+            directionLight.setAttribute('intensity',1);
+            ambientLight.setAttribute('intensity',1);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          } else if(event.detail.distance <= 150) {
+            // 50m以下で近づくほど明るくする、メッセージ非表示、距離表示
+            directionLight.setAttribute('intensity',1 - event.detail.distance / 50);
+            ambientLight.setAttribute('intensity',1 - event.detail.distance / 50);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          } else {
+            // 50mより離れると、明るさ0、メッセージ非表示、距離表示
+            directionLight.setAttribute('intensity',0);
+            ambientLight.setAttribute('intensity',0);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
