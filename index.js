@@ -55,11 +55,20 @@ app.get("/ar", (req, res) => {
   res.sendFile(join(__dirname, "ar.html"));
 });
 
+app.get("/chat_location", (req, res) => {
+  res.sendFile(join(__dirname, "chat_location.html"));
+});
+
 io.on("connection", async (socket) => {
   socket.on("map",async (msg) => {
     console.log("map", msg);
     io.emit("map", msg);
   });
+  socket.on("chat message from location", async (msg)=>{
+    const parsedMsg = JSON.parse(msg);// {content, userName,time,latitude,longitude}
+    console.log("chat message from location", parsedMsg);
+    io.emit('chat message from location', parsedMsg);
+  })
 
   socket.on("chat message", async (msg) => {
     await db.exec(`
