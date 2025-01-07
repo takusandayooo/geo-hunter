@@ -65,7 +65,7 @@
       look-at="[gps-camera]"
       scale = "1 1 1"
       rotation="0 0 0"
-      position="0 140 0"
+      position="0 50 0"
     ></a-entity>
     <a-light
     id="directionLight"
@@ -118,37 +118,24 @@
         const message = document.getElementById('message');
         const directionLight = document.getElementById('directionLight');
         const ambientLight = document.getElementById('ambientLight');
-        const mapButton = document.getElementById('map-button');
-        const chatButton = document.getElementById('chat-button');
-
         el.addEventListener('gps-entity-place-update-position', (event) => {
           distanceMsg.textContent = `あと${event.detail.distance}m`;
-          getGeolocation();
           if(event.detail.distance <= 15) {
+            // 30m以下で明るくする、メッセージ表示、距離非表示
             el.setAttribute('scale', '9 9 9');
             directionLight.setAttribute('intensity',1);
             ambientLight.setAttribute('intensity',1);
             distanceMsg.style.display = 'block';
             message.style.display = 'none';
-          } else if(event.detail.distance <= 40) {
-            // const minDistance = 15;
-            // const maxDistance = 40;
-            // const minScale = 5;
-            // const maxScale = 15;
-            // const scaleValue = minScale + ((event.detail.distance - minDistance) / (maxDistance - minDistance)) * (maxScale - minScale);
-            // el.setAttribute('scale', `${scaleValue.toFixed(2)} ${scaleValue.toFixed(2)} ${scaleValue.toFixed(2)}`);
-            // directionLight.setAttribute('intensity',1 - event.detail.distance / 50);
-            // ambientLight.setAttribute('intensity',1 - event.detail.distance / 50);
-            // distanceMsg.style.display = 'block';
-            message.style.display = 'none';
           } else {
-            // el.setAttribute('scale', '5 5 5');
+            // 50mより離れると、明るさ0、メッセージ非表示、距離表示
             directionLight.setAttribute('intensity',0);
             ambientLight.setAttribute('intensity',0);
             distanceMsg.style.display = 'block';
             message.style.display = 'none';
           }
         });
+      });
 
         mapButton.addEventListener('click', () => {
           window.location.href = '/map';
@@ -157,7 +144,6 @@
         chatButton.addEventListener('click', () => {
           window.location.href = '/chat_location';
         });
-      });
     </script>
   </body>
 </html>
