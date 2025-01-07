@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>GeoHunter</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <style>
+      #debug {
+        position: fixed;
+        z-index: 10000;
+        background-color: #fff;
+        padding: 10px;
+        top: 0;
+        left: 0;
+        display: block;
+      }
+      #button-container {
+        position: fixed;
+        bottom: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 10001;
+      }
+      .custom-button {
+        background-color: #008cba;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      .custom-button:hover {
+        background-color: #005f73;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <div id="debug"></div>
+    <div id="distance" style="position: fixed; top: 10%; left: 50%; transform: translateX(-50%); color: white; display: block;">距離情報を表示</div>
+    <div id="message" style="position: fixed; top: 20%; left: 50%; transform: translateX(-50%); color: white; display: none;">目的地に到着しました！</div>
+
+    <div id="button-container">
+      <button class="custom-button" id="map-button">Map 表示</button>
+      <button class="custom-button" id="chat-button">Chat 表示</button>
+    </div>
+
+    <a-scene
+    vr-mode-ui="enabled: false"
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+  >
+    <!-- 3Dモデル（gltfファイル） -->
+    <a-assets>
+      <a-asset-items id="TreasureBox" src="TreasureBox.glb" ></a-asset-items>
+    </a-assets>
+    <a-entity
+      gps-entity-place="latitude:35.64411304275167; longitude: 139.40813181827525;"
+      gltf-model="#TreasureBox"
+      look-at="[gps-camera]"
+      scale = "1 1 1"
+      rotation="0 0 0"
+      position="0 140 0"
+    ></a-entity>
+    <a-light
+    id="directionLight"
+    type="directional"
+    color="#FFF"
+    intensity="0.1"
+    position="-1 1 2"
+  ></a-light>
+  <a-light
+    id="ambientLight"
+    type="ambient"
+    intensity="0.1"
+    color="#FFF"
+  ></a-light>
+    <a-camera gps-camera="minDistance:5; maxDistance:150; updateFrequency:500": rotation-reader> </a-camera>
+  </a-scene>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+      const socket = io();
+
+      function getGeolocation() {
+        return new Promise((resolve, reject) => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const crd = position.coords;
+                localStorage.setItem("latitude", crd.latitude);
+                localStorage.setItem("longitude", crd.longitude);
+                socket.emit("map",{
+                  name:localStorage.getItem("userName"),
+                  lat:crd.latitude,
+                  lng:crd.longitude
+                });
+                resolve({ latitude: crd.latitude, longitude: crd.longitude });
+              },
+              (error) => {
+                reject(error);
+              }
+            );
+          } else {
+            alert("このブラウザはGeolocation APIをサポートしていません。");
+          }
+        });
+      }
+
+      window.addEventListener('load', function () {
+        const el = document.querySelector('[gps-entity-place]');
+        const distanceMsg = document.getElementById('distance');
+        const message = document.getElementById('message');
+        const directionLight = document.getElementById('directionLight');
+        const ambientLight = document.getElementById('ambientLight');
+        const mapButton = document.getElementById('map-button');
+        const chatButton = document.getElementById('chat-button');
+
+        el.addEventListener('gps-entity-place-update-position', (event) => {
+          distanceMsg.textContent = `あと${event.detail.distance}m`;
+          getGeolocation();
+          if(event.detail.distance <= 15) {
+            el.setAttribute('scale', '9 9 9');
+            directionLight.setAttribute('intensity',1);
+            ambientLight.setAttribute('intensity',1);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          } else if(event.detail.distance <= 40) {
+            // const minDistance = 15;
+            // const maxDistance = 40;
+            // const minScale = 5;
+            // const maxScale = 15;
+            // const scaleValue = minScale + ((event.detail.distance - minDistance) / (maxDistance - minDistance)) * (maxScale - minScale);
+            // el.setAttribute('scale', `${scaleValue.toFixed(2)} ${scaleValue.toFixed(2)} ${scaleValue.toFixed(2)}`);
+            // directionLight.setAttribute('intensity',1 - event.detail.distance / 50);
+            // ambientLight.setAttribute('intensity',1 - event.detail.distance / 50);
+            // distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          } else {
+            // el.setAttribute('scale', '5 5 5');
+            directionLight.setAttribute('intensity',0);
+            ambientLight.setAttribute('intensity',0);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          }
+        });
+
+        mapButton.addEventListener('click', () => {
+          window.location.href = '/map';
+        });
+
+        chatButton.addEventListener('click', () => {
+          window.location.href = '/chat_location';
+        });
+      });
+    </script>
+  </body>
+</html>
