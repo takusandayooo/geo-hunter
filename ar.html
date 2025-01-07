@@ -123,7 +123,7 @@
 
         el.addEventListener('gps-entity-place-update-position', (event) => {
           distanceMsg.textContent = `あと${event.detail.distance}m`;
-          getGeolocation();
+          // getGeolocation();
           if(event.detail.distance <= 15) {
             el.setAttribute('scale', '15 15 15');
             directionLight.setAttribute('intensity',1);
