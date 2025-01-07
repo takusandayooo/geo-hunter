@@ -40,34 +40,10 @@
       }
     </style>
   </head>
-  <body style="margin: 0; overflow: hidden">
+  <body style="margin: 0; overflow: hidden;">
     <div id="debug"></div>
-    <div
-      id="distance"
-      style="
-        position: fixed;
-        top: 10%;
-        left: 50%;
-        transform: translateX(-50%);
-        color: white;
-        display: block;
-      "
-    >
-      距離情報を表示
-    </div>
-    <div
-      id="message"
-      style="
-        position: fixed;
-        top: 20%;
-        left: 50%;
-        transform: translateX(-50%);
-        color: white;
-        display: none;
-      "
-    >
-      目的地に到着しました！
-    </div>
+    <div id="distance" style="position: fixed; top: 10%; left: 50%; transform: translateX(-50%); color: white; display: block;">距離情報を表示</div>
+    <div id="message" style="position: fixed; top: 20%; left: 50%; transform: translateX(-50%); color: white; display: none;">目的地に到着しました！</div>
 
     <div id="button-container">
       <button class="custom-button" id="map-button">Map 表示</button>
@@ -75,68 +51,111 @@
     </div>
 
     <a-scene
-      vr-mode-ui="enabled: false"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled: false"
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
     >
-      <!-- 3Dモデル（gltfファイル） -->
-      <a-assets>
-        <a-asset-items id="TreasureBox" src="TreasureBox.glb"></a-asset-items>
-      </a-assets>
-      <a-entity
-        gps-entity-place="latitude:35.64411304275167; longitude: 139.40813181827525;"
-        gltf-model="#TreasureBox"
-        look-at="[gps-camera]"
-        scale="1 1 1"
-        rotation="0 0 0"
-        position="0 140 0"
-      ></a-entity>
-      <a-light
-        id="directionLight"
-        type="directional"
-        color="#FFF"
-        intensity="0.1"
-        position="-1 1 2"
-      ></a-light>
-      <a-light
-        id="ambientLight"
-        type="ambient"
-        intensity="0.1"
-        color="#FFF"
-      ></a-light>
-      <a-camera
-        gps-camera="minDistance:5; maxDistance:150; updateFrequency:500"
-        :
-        rotation-reader
-      >
-      </a-camera>
-    </a-scene>
-    <script>
-      window.addEventListener("load", function () {
-        const el = document.querySelector("[gps-entity-place]");
-        const distanceMsg = document.getElementById("distance");
-        const message = document.getElementById("message");
-        const directionLight = document.getElementById("directionLight");
-        const ambientLight = document.getElementById("ambientLight");
-        el.addEventListener("gps-entity-place-update-position", (event) => {
-          distanceMsg.textContent = `あと${event.detail.distance}m`;
-          if (event.detail.distance <= 15) {
-            // 30m以下で明るくする、メッセージ表示、距離非表示
-            el.setAttribute("scale", "9 9 9");
-            directionLight.setAttribute("intensity", 1);
-            ambientLight.setAttribute("intensity", 1);
-            distanceMsg.style.display = "block";
-            message.style.display = "none";
-          } else if (event.detail.distance <= 40) {
-            distanceMsg.style.display = "block";
-            message.style.display = "none";
+    <!-- 3Dモデル（gltfファイル） -->
+    <a-assets>
+      <a-asset-items id="TreasureBox" src="TreasureBox.glb" ></a-asset-items>
+    </a-assets>
+    <a-entity
+      gps-entity-place="latitude:35.64411304275167; longitude: 139.40813181827525;"
+      gltf-model="#TreasureBox"
+      look-at="[gps-camera]"
+      scale = "1 1 1"
+      rotation="0 0 0"
+      position="0 140 0"
+    ></a-entity>
+    <a-light
+    id="directionLight"
+    type="directional"
+    color="#FFF"
+    intensity="0.1"
+    position="-1 1 2"
+  ></a-light>
+  <a-light
+    id="ambientLight"
+    type="ambient"
+    intensity="0.1"
+    color="#FFF"
+  ></a-light>
+    <a-camera gps-camera="minDistance:5; maxDistance:150; updateFrequency:500": rotation-reader> </a-camera>
+  </a-scene>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+      const socket = io();
+
+      function getGeolocation() {
+        return new Promise((resolve, reject) => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const crd = position.coords;
+                localStorage.setItem("latitude", crd.latitude);
+                localStorage.setItem("longitude", crd.longitude);
+                socket.emit("map",{
+                  name:localStorage.getItem("userName"),
+                  lat:crd.latitude,
+                  lng:crd.longitude
+                });
+                resolve({ latitude: crd.latitude, longitude: crd.longitude });
+              },
+              (error) => {
+                reject(error);
+              }
+            );
           } else {
-            // 50mより離れると、明るさ0、メッセージ非表示、距離表示
-            directionLight.setAttribute("intensity", 0);
-            ambientLight.setAttribute("intensity", 0);
-            distanceMsg.style.display = "block";
-            message.style.display = "none";
+            alert("このブラウザはGeolocation APIをサポートしていません。");
           }
+        });
+      }
+
+      window.addEventListener('load', function () {
+        const el = document.querySelector('[gps-entity-place]');
+        const distanceMsg = document.getElementById('distance');
+        const message = document.getElementById('message');
+        const directionLight = document.getElementById('directionLight');
+        const ambientLight = document.getElementById('ambientLight');
+        const mapButton = document.getElementById('map-button');
+        const chatButton = document.getElementById('chat-button');
+
+        el.addEventListener('gps-entity-place-update-position', (event) => {
+          distanceMsg.textContent = `あと${event.detail.distance}m`;
+          getGeolocation();
+          if(event.detail.distance <= 15) {
+            el.setAttribute('scale', '9 9 9');
+            directionLight.setAttribute('intensity',1);
+            ambientLight.setAttribute('intensity',1);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          } else if(event.detail.distance <= 40) {
+            // const minDistance = 15;
+            // const maxDistance = 40;
+            // const minScale = 5;
+            // const maxScale = 15;
+            // const scaleValue = minScale + ((event.detail.distance - minDistance) / (maxDistance - minDistance)) * (maxScale - minScale);
+            // el.setAttribute('scale', `${scaleValue.toFixed(2)} ${scaleValue.toFixed(2)} ${scaleValue.toFixed(2)}`);
+            // directionLight.setAttribute('intensity',1 - event.detail.distance / 50);
+            // ambientLight.setAttribute('intensity',1 - event.detail.distance / 50);
+            // distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          } else {
+            // el.setAttribute('scale', '5 5 5');
+            directionLight.setAttribute('intensity',0);
+            ambientLight.setAttribute('intensity',0);
+            distanceMsg.style.display = 'block';
+            message.style.display = 'none';
+          }
+        });
+
+        mapButton.addEventListener('click', () => {
+          window.location.href = '/map';
+        });
+
+        chatButton.addEventListener('click', () => {
+          window.location.href = '/chat_location';
         });
       });
     </script>
