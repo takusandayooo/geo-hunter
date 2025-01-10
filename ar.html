@@ -118,6 +118,8 @@
         const message = document.getElementById('message');
         const directionLight = document.getElementById('directionLight');
         const ambientLight = document.getElementById('ambientLight');
+        const mapButton = document.getElementById('map-button');
+        const chatButton = document.getElementById('chat-button');
         el.addEventListener('gps-entity-place-update-position', (event) => {
           distanceMsg.textContent = `あと${event.detail.distance}m`;
           if(event.detail.distance <= 15) {
