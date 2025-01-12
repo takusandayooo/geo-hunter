@@ -123,14 +123,12 @@
         el.addEventListener('gps-entity-place-update-position', (event) => {
           distanceMsg.textContent = `あと${event.detail.distance}m`;
           if(event.detail.distance <= 15) {
-            // 30m以下で明るくする、メッセージ表示、距離非表示
             el.setAttribute('scale', '9 9 9');
             directionLight.setAttribute('intensity',1);
             ambientLight.setAttribute('intensity',1);
             distanceMsg.style.display = 'block';
             message.style.display = 'none';
           } else {
-            // 50mより離れると、明るさ0、メッセージ非表示、距離表示
             directionLight.setAttribute('intensity',0);
             ambientLight.setAttribute('intensity',0);
             distanceMsg.style.display = 'block';
