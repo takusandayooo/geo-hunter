@@ -2,7 +2,14 @@
 
 位置情報やAR技術を活用し、宝探しを楽しめるアプリケーション「Geo-Hunter」へようこそ！友達や近くのプレイヤーと協力して、ARで表示される宝箱を探しましょう！
 
+## デプロイ済みのアプリ 🚀
+Geo-Hunter は以下のリンクからアクセス可能です！ ※ 無料でデプロイされているため、起動に時間がかかる場合があります。  
+➡️ [Geo-Hunter](https://geo-hunter-main.onrender.com/)
 
+
+## 開発者チーム 🤝
+- [@LucasCreate-afk](https://github.com/LucasCreate-afk)  
+- [@takusandayooo](https://github.com/takusandayooo)
 ## 主な機能 ✨
 
 - **AR宝探し**  
