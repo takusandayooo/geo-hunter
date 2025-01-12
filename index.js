@@ -41,9 +41,6 @@ app.get("/treasure_location", (req, res) => {
   res.json(treasure_location);
 });
 
-app.get("/chat", (req, res) => {
-  res.sendFile(join(__dirname, "chat.html"));
-});
 app.get("/map", (req, res) => {
   res.sendFile(join(__dirname, "map.html"));
 });
